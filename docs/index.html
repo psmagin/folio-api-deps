@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>FOLIO API Dependencies</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+
+
+    </style>
+</head>
+<body>
+<h1>FOLIO API Dependencies</h1>
+
+<div id="tabs">
+    <button data-tab="table" class="tab-button active">📋 Table View</button>
+    <button data-tab="api" class="tab-button">🔎 API Usage View</button>
+</div>
+
+<div id="view-table" class="tab-view">
+    <input type="text" id="search" placeholder="Search module or API…"/>
+
+    <table id="dependency-table">
+        <thead>
+        <tr>
+            <th data-sort="module">Module</th>
+            <th data-sort="type">Type</th>
+            <th data-sort="api">API</th>
+            <th data-sort="version">Version(s)</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div id="view-api" class="tab-view">
+    <div style="position: relative; max-width: 400px;">
+        <input id="api-select" type="text" placeholder="Start typing API name…" autocomplete="off"/>
+        <div id="api-dropdown" class="dropdown"></div>
+    </div>
+    <div id="api-details" style="margin-top: 1em;"></div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+
+</html>
