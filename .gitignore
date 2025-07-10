@@ -1,0 +1,22 @@
+*.class
+*.log
+metrics/
+#mvn build
+target/
+#vert.x
+.vertx/
+file-uploads/
+#netbeans
+nbproject/
+#eclipse
+.project
+.settings/
+.classpath
+#idea
+.idea/
+*.iml
+#npm
+node_modules
+/bin/
+.factorypath
+.vscode/
