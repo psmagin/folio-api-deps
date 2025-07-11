@@ -18,7 +18,24 @@
 </div>
 
 <div id="view-table" class="tab-view">
-    <input type="text" id="search" placeholder="Search module or API…"/>
+    <div style="position: relative; max-width: 400px;">
+      <input id="table-search" type="text" placeholder="Search module or API…" autocomplete="off" />
+      <button id="table-clear" style="
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        cursor: pointer;
+        display: none;
+      " title="Clear">×</button>
+      <div id="table-dropdown" class="dropdown"></div>
+    </div>
+
+    <div id="table-match-count" style="margin-top: 0.5em; font-size: 14px;"></div>
+
 
     <table id="dependency-table">
         <thead>

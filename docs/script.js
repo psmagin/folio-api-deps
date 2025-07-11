@@ -1,4 +1,5 @@
 let allRows = [];
+let currentGroupedRows = [];  // <-- will track current rows in table
 
 async function loadDependencies() {
     const res = await fetch('dependencies.json');
@@ -35,7 +36,6 @@ function renderTable(rows) {
     const tbody = document.querySelector('#dependency-table tbody');
     tbody.innerHTML = '';
 
-    // Step 1: Group rows by module + api + type
     const grouped = new Map(); // key = `${module}|${type}|${api}`, value = array of versions
 
     for (const row of rows) {
@@ -44,33 +44,158 @@ function renderTable(rows) {
         grouped.get(key).push(row.version || '?');
     }
 
-    // Step 2: Render grouped rows
+    const groupedDisplayRows = []; // ← Will track for sorting
+
     for (const [key, versions] of grouped.entries()) {
         const [module, type, api] = key.split('|');
         const versionText = [...new Set(versions)].join(', ');
 
+        groupedDisplayRows.push({ module, type, api, version: versionText });
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-      <td>${module}</td>
-      <td class="type-${type}">${type}</td>
-      <td>${api}</td>
-      <td>${versionText}</td>
-    `;
+          <td>${module}</td>
+          <td class="type-${type}">${type}</td>
+          <td>${api}</td>
+          <td>${versionText}</td>
+        `;
         tbody.appendChild(tr);
     }
+
+    currentGroupedRows = groupedDisplayRows; // Store for sorting
 }
 
+function initTableSearch(allRows) {
+    const input = document.getElementById('table-search');
+    const clearBtn = document.getElementById('table-clear');
+    const dropdown = document.getElementById('table-dropdown');
+    const matchCountEl = document.getElementById('table-match-count');
 
-function setupSearch() {
-    const input = document.getElementById('search');
-    input.addEventListener('input', () => {
-        const term = input.value.toLowerCase();
-        const filtered = allRows.filter(r =>
-            r.module.toLowerCase() === term ||
-            r.api.toLowerCase() === term
-        );
-        renderTable(filtered);
+    const uniqueValues = new Set();
+    allRows.forEach(row => {
+        uniqueValues.add(row.module);
+        uniqueValues.add(row.api);
     });
+
+    const options = Array.from(uniqueValues).sort();
+    let filtered = [];
+    let activeIndex = -1;
+
+    function highlight(text, term) {
+        const idx = text.toLowerCase().indexOf(term.toLowerCase());
+        if (idx === -1) return text;
+        return (
+            text.slice(0, idx) +
+            '<strong>' + text.slice(idx, idx + term.length) + '</strong>' +
+            text.slice(idx + term.length)
+        );
+    }
+
+    function renderDropdown(term) {
+        dropdown.innerHTML = '';
+        if (filtered.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        filtered.forEach((item, i) => {
+            const el = document.createElement('div');
+            el.className = 'dropdown-item' + (i === activeIndex ? ' active' : '');
+            el.innerHTML = highlight(item, term);
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                select(item);
+            });
+            dropdown.appendChild(el);
+        });
+
+        dropdown.style.display = 'block';
+    }
+
+    function renderCount(count) {
+        matchCountEl.textContent = count === allRows.length
+            ? ''
+            : `${count} matching ${count === 1 ? 'row' : 'rows'}`;
+    }
+
+    function select(value) {
+        input.value = value;
+        dropdown.style.display = 'none';
+        activeIndex = -1;
+        clearBtn.style.display = 'block';
+
+        const filteredRows = allRows.filter(
+            row => row.module === value || row.api === value
+        );
+        renderTable(filteredRows);
+        renderCount(filteredRows.length);
+    }
+
+    function updateMatches() {
+        const term = input.value.trim();
+        if (!term) {
+            dropdown.style.display = 'none';
+            renderTable(allRows);
+            renderCount(allRows.length);
+            clearBtn.style.display = 'none';
+            return;
+        }
+
+        filtered = options.filter(opt => opt.toLowerCase().includes(term.toLowerCase()));
+        activeIndex = -1;
+        renderDropdown(term);
+
+        const matchedRows = allRows.filter(
+            row =>
+                row.module.toLowerCase() === term.toLowerCase() ||
+                row.api.toLowerCase() === term.toLowerCase()
+        );
+        renderTable(matchedRows);
+        renderCount(matchedRows.length);
+        clearBtn.style.display = 'block';
+    }
+
+    function clearSearch() {
+        input.value = '';
+        dropdown.style.display = 'none';
+        clearBtn.style.display = 'none';
+        renderTable(allRows);
+        renderCount(allRows.length);
+    }
+
+    input.addEventListener('input', updateMatches);
+    input.addEventListener('focus', updateMatches);
+    clearBtn.addEventListener('click', clearSearch);
+
+    input.addEventListener('keydown', e => {
+        if (dropdown.style.display === 'none') return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+            renderDropdown(input.value);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, 0);
+            renderDropdown(input.value);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIndex >= 0) {
+                select(filtered[activeIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', e => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Initial state
+    renderCount(allRows.length);
 }
 
 function buildApiIndex(rows) {
@@ -259,15 +384,37 @@ function setupSorting() {
         th.addEventListener('click', () => {
             const key = th.getAttribute('data-sort');
             const ascending = th.classList.toggle('asc');
-            allRows.sort((a, b) => {
-                const av = a[key].toLowerCase();
-                const bv = b[key].toLowerCase();
-                return ascending ? av.localeCompare(bv) : bv.localeCompare(av);
-            });
-            renderTable(allRows);
+            th.classList.remove('desc');
+            if (!ascending) th.classList.add('desc');
+
+            sortTableBy(key, ascending);
         });
     });
 }
+
+function sortTableBy(column, ascending = true) {
+    const rows = [...currentGroupedRows];
+    rows.sort((a, b) => {
+        const av = a[column]?.toLowerCase?.() ?? '';
+        const bv = b[column]?.toLowerCase?.() ?? '';
+        return ascending ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+
+    const tbody = document.querySelector('#dependency-table tbody');
+    tbody.innerHTML = '';
+
+    for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+      <td>${row.module}</td>
+      <td class="type-${row.type}">${row.type}</td>
+      <td>${row.api}</td>
+      <td>${row.version}</td>
+    `;
+        tbody.appendChild(tr);
+    }
+}
+
 
 function setupTabs() {
     const buttons = document.querySelectorAll('.tab-button');
@@ -298,7 +445,7 @@ function setupTabs() {
 loadDependencies().then(rows => {
     allRows = rows;
     renderTable(allRows);
-    setupSearch();
+    initTableSearch(allRows);
     setupSorting();
 
     const apiIndex = buildApiIndex(rows);

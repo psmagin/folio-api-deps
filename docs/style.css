@@ -104,3 +104,10 @@ tr:hover {
     color: #000;
 }
 
+th.asc::after {
+    content: " ▲";
+}
+th.desc::after {
+    content: " ▼";
+}
+
