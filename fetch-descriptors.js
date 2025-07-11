@@ -47,7 +47,7 @@ async function tryFetchDescriptor(repo) {
             try {
                 const res = await fetch(url, {headers: HEADERS});
                 if (res.status === 404) {
-                    console.log('Fetch descriptor status for ', repo.name, ': ', res.status);
+                    console.log('Fetch descriptor status for ', repo.name, 'url: ', url, ': ', res.status);
                     continue;
                 }
                 if (res.ok) return await res.json();
