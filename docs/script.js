@@ -1,6 +1,33 @@
 let allRows = [];
 let currentGroupedRows = [];  // <-- will track current rows in table
 
+let globalApiIndex;
+
+function getQueryParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+}
+
+
+function selectApi(api) {
+    const record = globalApiIndex.get(api.trim());
+    if (record) {
+        const input = document.getElementById('api-select');
+        input.value = api;
+        document.getElementById('api-dropdown').style.display = 'none';
+        renderApiUsage(api, record);
+
+        // 🔗 Update URL for shareable link
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('api', api);
+        history.replaceState({}, '', newUrl);
+    } else {
+        console.warn('No match for API:', api);
+        document.getElementById('api-details').innerHTML = '<em>No usage found</em>';
+    }
+}
+
+
 async function loadDependencies() {
     const res = await fetch('dependencies.json');
     const data = await res.json();
@@ -415,6 +442,87 @@ function sortTableBy(column, ascending = true) {
     }
 }
 
+function renderApiUsageCountTable(rows) {
+    const providesMap = new Map(); // key = API, value = provider module
+    const usageMap = new Map();    // key = API, value = Set of modules that require/optional
+
+    for (const row of rows) {
+        if (row.type === 'provides') {
+            // Register the provider for this API
+            if (!providesMap.has(row.api)) {
+                providesMap.set(row.api, row.module); // First provider only
+            }
+        } else if (row.type === 'requires' || row.type === 'optional') {
+            // Add to usage set
+            if (!usageMap.has(row.api)) usageMap.set(row.api, new Set());
+            usageMap.get(row.api).add(row.module);
+        }
+    }
+
+    // Build display list
+    const resultList = Array.from(usageMap.entries()).map(([api, users]) => ({
+        api,
+        count: users.size,
+        provider: providesMap.get(api) || null
+    }));
+
+    resultList.sort((a, b) => b.count - a.count);
+
+    // Render
+    const container = document.getElementById('api-usage-count');
+    container.innerHTML = `
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>API Interface</th>
+            <th>Usage Count</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${resultList.map(u => `
+            <tr>
+              <td>
+                ${u.provider
+            ? `<a href="https://github.com/folio-org/${u.provider}" target="_blank">${u.api}</a>`
+            : u.api}
+              </td>
+              <td>${u.count}</td>
+              <td>
+                <button class="view-usage-btn" data-api="${u.api}">View Usage</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    // Attach click events to "View Usage" buttons
+    container.querySelectorAll('.view-usage-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const api = btn.getAttribute('data-api');
+
+            // ✅ Fix: match your actual tab button data-tab="api"
+            const apiUsageTabButton = document.querySelector('.tab-button[data-tab="api"]');
+            if (apiUsageTabButton) {
+                apiUsageTabButton.click();
+
+                // Wait for DOM update
+                setTimeout(() => {
+                    const input = document.getElementById('api-select');
+                    if (input) {
+                        input.value = api;
+                        input.dispatchEvent(new Event('input'));
+                        selectApi(api);
+                    }
+                }, 50);
+            }
+        });
+    });
+
+
+
+}
 
 function setupTabs() {
     const buttons = document.querySelectorAll('.tab-button');
@@ -448,9 +556,25 @@ loadDependencies().then(rows => {
     initTableSearch(allRows);
     setupSorting();
 
-    const apiIndex = buildApiIndex(rows);
-    renderApiList(apiIndex);
+    globalApiIndex = buildApiIndex(rows);
+    renderApiList(globalApiIndex);
+    renderApiUsageCountTable(allRows);
 
     setupTabs();
+
+    const initialApi = getQueryParam('api');
+    if (initialApi) {
+        // Switch to the tab using your existing button
+        const usageTabBtn = document.querySelector('.tab-button[data-tab="api"]');
+        if (usageTabBtn) {
+            usageTabBtn.click();
+
+            // Ensure DOM is ready before selecting
+            setTimeout(() => {
+                selectApi(initialApi);
+            }, 100);
+        }
+    }
+
 });
 

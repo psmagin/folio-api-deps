@@ -30,16 +30,15 @@ tr:hover {
 }
 
 .type-requires {
-    color: #c0392b;
+    background: #f3faff;
+}
+
+.type-optional {
+    background: #fff8e1;
 }
 
 .type-provides {
     color: #2980b9;
-}
-
-.type-optional {
-    color: #e67e22;
-    font-style: italic;
 }
 
 #tabs {
@@ -107,7 +106,42 @@ tr:hover {
 th.asc::after {
     content: " ▲";
 }
+
 th.desc::after {
     content: " ▼";
 }
+
+.simple-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+}
+
+.simple-table th,
+.simple-table td {
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+}
+
+.simple-table th {
+    background-color: #f9f9f9;
+    text-align: left;
+}
+
+.simple-table a {
+    text-decoration: none;
+    color: #0366d6;
+}
+
+.simple-table a:hover {
+    text-decoration: underline;
+}
+
+.view-usage-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+
 
