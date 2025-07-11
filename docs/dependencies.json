@@ -9480,6 +9480,10 @@
       {
         "id": "source-storage-records",
         "version": "3.3"
+      },
+      {
+        "id": "user-summary",
+        "version": "0.1"
       }
     ],
     "optional": [
