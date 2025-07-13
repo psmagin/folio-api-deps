@@ -243,7 +243,7 @@
       },
       {
         "id": "circulation-bff-loans",
-        "version": "1.3"
+        "version": "1.4"
       },
       {
         "id": "users-keycloak",
@@ -7998,7 +7998,7 @@
     "provides": [
       {
         "id": "inn-reach",
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "id": "_tenant",
@@ -9864,7 +9864,7 @@
       },
       {
         "id": "requests-mediated-loans",
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "id": "_tenant",
@@ -9933,6 +9933,10 @@
       {
         "id": "ecs-tlr",
         "version": "1.0"
+      },
+      {
+        "id": "ecs-loans",
+        "version": "1.1"
       }
     ]
   },
@@ -9989,7 +9993,7 @@
       },
       {
         "id": "ecs-loans",
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "id": "_tenant",
@@ -10399,7 +10403,7 @@
       },
       {
         "id": "circulation-bff-loans",
-        "version": "1.3"
+        "version": "1.4"
       },
       {
         "id": "_tenant",
@@ -10511,7 +10515,7 @@
       },
       {
         "id": "requests-mediated-loans",
-        "version": "1.0"
+        "version": "1.1"
       },
       {
         "id": "ecs-tlr-allowed-service-points",
@@ -10524,6 +10528,10 @@
       {
         "id": "allowed-service-points",
         "version": "1.2"
+      },
+      {
+        "id": "ecs-loans",
+        "version": "1.1"
       }
     ]
   },
