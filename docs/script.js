@@ -549,6 +549,206 @@ function setupTabs() {
     document.querySelector('.tab-button.active').click();
 }
 
+function initProgressiveConsumersGraph(rows) {
+    const container = document.getElementById('module-consumers-graph');
+    container.innerHTML = ''; // clear previous
+
+    const providesMap = new Map(); // api → [providerModules]
+    const dependentsMap = new Map(); // api → [consumerModules]
+    const providesByModule = new Map(); // module → [api]
+
+    // Build lookup maps
+    for (const row of rows) {
+        if (row.type === 'provides') {
+            if (!providesMap.has(row.api)) providesMap.set(row.api, []);
+            providesMap.get(row.api).push(row.module);
+
+            if (!providesByModule.has(row.module)) providesByModule.set(row.module, []);
+            providesByModule.get(row.module).push(row.api);
+        } else if (row.type === 'requires' || row.type === 'optional') {
+            if (!dependentsMap.has(row.api)) dependentsMap.set(row.api, []);
+            dependentsMap.get(row.api).push(row.module);
+        }
+    }
+
+    let cy = null;
+    const addedNodes = new Set(); // track expanded modules
+
+    function expandModule(moduleName) {
+        if (addedNodes.has(moduleName)) return;
+
+        // Add node if not yet present in graph
+        if (!cy.getElementById(moduleName).length) {
+            cy.add({ group: 'nodes', data: { id: moduleName, label: moduleName } });
+        }
+
+        addedNodes.add(moduleName);
+
+        const providedApis = providesByModule.get(moduleName) || [];
+
+        for (const api of providedApis) {
+            const consumers = dependentsMap.get(api) || [];
+
+            for (const consumer of consumers) {
+                // Add consumer node only if it doesn't exist yet
+                if (!cy.getElementById(consumer).length) {
+                    cy.add({ group: 'nodes', data: { id: consumer, label: consumer } });
+                }
+
+                // Add edge only if it doesn't exist
+                const edgeId = `${consumer}__to__${moduleName}__${api}`;
+                if (!cy.getElementById(edgeId).length) {
+                    // Determine dependency type
+                    const isOptional = rows.some(
+                        r => r.module === consumer && r.api === api && r.type === 'optional'
+                    );
+
+                    cy.add({
+                        group: 'edges',
+                        data: {
+                            id: edgeId,
+                            source: consumer,
+                            target: moduleName,
+                            label: `${api}${isOptional ? ' (optional)' : ''}`,
+                            depType: isOptional ? 'optional' : 'requires'
+                        }
+                    });
+                }
+
+            }
+        }
+
+        cy.layout({ name: 'breadthfirst', directed: true, padding: 10 }).run();
+    }
+
+
+    function renderInitial(moduleName) {
+        cy = cytoscape({
+            container,
+            elements: [
+                { data: { id: moduleName, label: moduleName } }
+            ],
+            layout: {
+                name: 'breadthfirst',
+                directed: true,
+                padding: 10
+            },
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        label: 'data(label)',
+                        'background-color': '#1976d2',
+                        color: '#fff',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'font-size': '12px',
+                        'text-outline-color': '#1976d2',
+                        'text-outline-width': 2
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        label: 'data(label)',
+                        width: 2,
+                        'line-color': '#666',
+                        'target-arrow-color': '#666',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'font-size': '10px',
+                        'text-rotation': 'autorotate',
+                        'text-margin-y': -5,
+                        'text-outline-color': '#fff',
+                        'text-outline-width': 2
+                    }
+                },
+                {
+                    selector: 'edge[depType = "optional"]',
+                    style: {
+                        'line-color': '#ff9800',
+                        'target-arrow-color': '#ff9800',
+                        'line-style': 'dashed'
+                    }
+                },
+                {
+                    selector: 'edge[depType = "requires"]',
+                    style: {
+                        'line-color': '#4caf50',
+                        'target-arrow-color': '#4caf50',
+                        'line-style': 'solid'
+                    }
+                }
+            ]
+
+        });
+
+        addedNodes.clear();
+        expandModule(moduleName);
+
+        cy.on('tap', 'node', (evt) => {
+            const node = evt.target;
+            expandModule(node.id());
+        });
+    }
+
+    // Hook up input/dropdown logic
+    const input = document.getElementById('module-consumers-input');
+    const dropdown = document.getElementById('module-consumers-dropdown');
+    const moduleNames = [...new Set(rows.map(r => r.module))].sort();
+    let filtered = [];
+    let activeIndex = -1;
+
+    function renderDropdown(term) {
+        dropdown.innerHTML = '';
+        filtered.forEach((mod, i) => {
+            const el = document.createElement('div');
+            el.className = 'dropdown-item' + (i === activeIndex ? ' active' : '');
+            el.textContent = mod;
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                input.value = mod;
+                dropdown.style.display = 'none';
+                renderInitial(mod);
+            });
+            dropdown.appendChild(el);
+        });
+        dropdown.style.display = filtered.length ? 'block' : 'none';
+    }
+
+    input.addEventListener('input', () => {
+        const term = input.value.trim().toLowerCase();
+        filtered = moduleNames.filter(m => m.toLowerCase().startsWith(term));
+        renderDropdown(term);
+    });
+
+    input.addEventListener('keydown', e => {
+        if (dropdown.style.display === 'none') return;
+        if (e.key === 'ArrowDown') {
+            activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+            renderDropdown(input.value);
+        } else if (e.key === 'ArrowUp') {
+            activeIndex = Math.max(activeIndex - 1, 0);
+            renderDropdown(input.value);
+        } else if (e.key === 'Enter' && activeIndex >= 0) {
+            e.preventDefault();
+            input.value = filtered[activeIndex];
+            dropdown.style.display = 'none';
+            renderInitial(filtered[activeIndex]);
+        } else if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', e => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+
+
 
 loadDependencies().then(rows => {
     allRows = rows;
@@ -559,6 +759,8 @@ loadDependencies().then(rows => {
     globalApiIndex = buildApiIndex(rows);
     renderApiList(globalApiIndex);
     renderApiUsageCountTable(allRows);
+    initProgressiveConsumersGraph(allRows);
+
 
     setupTabs();
 

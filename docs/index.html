@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <title>FOLIO API Dependencies</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.css">
+
     <style>
 
 
@@ -16,6 +18,8 @@
     <button data-tab="table" class="tab-button active">📋 Table View</button>
     <button data-tab="api-usage-count" class="tab-button">🔢 API Usage Count</button>
     <button data-tab="api" class="tab-button">🔎 API Usage View</button>
+    <button data-tab="module-consumers" class="tab-button">🌐 Module Consumers</button>
+
 </div>
 
 <div id="view-table" class="tab-view">
@@ -65,8 +69,19 @@
     <div id="api-usage-count"></div>
 </div>
 
+<div id="view-module-consumers" class="tab-view">
+    <h3>Module Consumers Graph</h3>
+    <div style="position: relative; max-width: 400px;">
+        <input id="module-consumers-input" type="text" placeholder="Type module name…" autocomplete="off" />
+        <div id="module-consumers-dropdown" class="dropdown"></div>
+    </div>
+    <div id="module-consumers-graph" style="width: 100%; height: 600px;"></div>
+</div>
+
 
 <script src="script.js"></script>
+<script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+
 </body>
 
 </html>
