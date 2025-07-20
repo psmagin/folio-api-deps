@@ -5212,6 +5212,10 @@
         "version": "2.0"
       },
       {
+        "id": "settings",
+        "version": "1.2"
+      },
+      {
         "id": "finance.funds",
         "version": "3.0"
       },
@@ -6111,6 +6115,10 @@
       {
         "id": "item-storage",
         "version": "10.0"
+      },
+      {
+        "id": "item-storage",
+        "version": "11.0"
       },
       {
         "id": "loan-types",
@@ -9274,6 +9282,10 @@
         "version": "10.0"
       },
       {
+        "id": "item-storage",
+        "version": "11.0"
+      },
+      {
         "id": "holdings-storage",
         "version": "6.0"
       },
@@ -9484,6 +9496,10 @@
       {
         "id": "user-summary",
         "version": "0.1"
+      },
+      {
+        "id": "feesfines",
+        "version": "19.1"
       }
     ],
     "optional": [
